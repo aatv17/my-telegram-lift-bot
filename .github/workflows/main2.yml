@@ -24,4 +24,4 @@ jobs:
       - name: Run Bot
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN2 }}
-        run: python casino_drink.py
+        run: python casino drink.py
