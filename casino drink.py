@@ -5,7 +5,7 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Cont
 
 # --- CONFIGURATION ---
 # Menggunakan os.getenv supaya token anda selamat di GitHub Secrets
-TOKEN = os.getenv('BOT_TOKEN', '8786168146:AAGTEOEsH-ZM2_OTYNUQTuC2w5dORMqMPtY')
+TOKEN = os.getenv('BOT_TOKEN2', '8786168146:AAGTEOEsH-ZM2_OTYNUQTuC2w5dORMqMPtY')
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -90,7 +90,7 @@ async def handle_drink_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     if not TOKEN:
-        print("Error: BOT_TOKEN not found!")
+        print("Error: BOT_TOKEN2 not found!")
         return
 
     # post_init digunakan untuk set menu command secara automatik
