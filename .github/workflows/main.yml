@@ -1,24 +1,24 @@
-name: Telegram Bot 24/7
+name: Bot Lif 24/7
 
 on:
   push:
     branches: [ main ]
   schedule:
-    - cron: '0 */6 * * *' # Bot akan restart setiap 6 jam untuk elak sangkut
+    - cron: '0 */6 * * *'
 
 jobs:
-  build:
+  run-bot:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: Install dependencies
+      - name: Install Requirements
         run: pip install -r requirements.txt
 
       - name: Run Bot
