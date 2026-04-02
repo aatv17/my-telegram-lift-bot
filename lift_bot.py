@@ -3,12 +3,10 @@ import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
-# --- KONFIGURASI ---
-# Kod ini akan cuba membaca token dari GitHub Secrets. 
-# Jika tiada (masa test di PC), ia akan guna token manual di bawah.
-TOKEN = os.getenv('BOT_TOKEN', '8652495747:AAHYO4Wm3q6deQCHw6Lplzq-CAbrRl8Te6M')
+# Membaca token dari GitHub Secrets
+TOKEN = os.getenv('BOT_TOKEN','8652495747:AAFuFb13DiuF_Vnd4-7It94jkKwH5A6GfIc')
 
-# Simpan status lif (tingkat semasa)
+# Simpan status lif
 current_lift_state = {}
 
 logging.basicConfig(
@@ -16,7 +14,6 @@ logging.basicConfig(
     level=logging.INFO
 )
 
-# Database Fail Gambar & Pautan
 FLOOR_FILES = {
     "B": "AgACAgUAAxkBAAMWaa7T3Xu_pIPAFgMaaeGXnt-30VAAAr4NaxsMx3hV6gjo3f5ukKsBAAMCAAN5AAM6BA",
     "1": "AgACAgUAAxkBAAMPaa4F2r0XSk-EcqwPrz589jwMLz0AAmINaxsMx3BVjhMpURTpYu8BAAMCAAN5AAM6BA",
@@ -44,17 +41,15 @@ FLOOR_NAMES = {
 SHORT_NAMES = {"B": "Basement 🚗", "1": "Tingkat 1 🔽", "2": "Tingkat 2 ↕️", "3": "Tingkat 3 🔼", "R": "Rooftop 🌿"}
 FLOOR_LEVELS = {"B": 0, "1": 1, "2": 2, "3": 3, "R": 4}
 
-# --- FUNGSI BANTUAN ---
-
 def get_state_key(update: Update):
     chat_id = update.effective_chat.id
     thread_id = update.effective_message.message_thread_id if update.effective_message else None
     return f"{chat_id}_{thread_id}"
 
 async def post_init(application: Application):
-    """Menetapkan menu 'Commands' secara automatik dalam Telegram."""
+    """Set menu command secara automatik."""
     commands = [
-        BotCommand("start", "Mula & Papar Panel Lif"),
+        BotCommand("start", "Papar Panel Lif"),
         BotCommand("lift", "Panggil Lif"),
     ]
     await application.bot.set_my_commands(commands)
@@ -65,19 +60,13 @@ async def send_lift_photo(update, context, floor_key):
     user_name = update.effective_user.first_name
     state_key = get_state_key(update)
 
-    # Logik pergerakan lif
     old_floor = current_lift_state.get(state_key, "1")
-    if FLOOR_LEVELS[floor_key] < FLOOR_LEVELS[old_floor]:
-        action = "Turun ke"
-    elif FLOOR_LEVELS[floor_key] > FLOOR_LEVELS[old_floor]:
-        action = "Naik ke"
-    else:
-        action = "Anda berada di"
+    action = "Turun ke" if FLOOR_LEVELS[floor_key] < FLOOR_LEVELS[old_floor] else "Naik ke"
+    if floor_key == old_floor: action = "Anda berada di"
     
     current_lift_state[state_key] = floor_key
     caption_text = f"🛗 *Ding!* {action} {FLOOR_NAMES[floor_key]}\n\n👤 **Penumpang:** {user_name}"
 
-    # Bina butang navigasi (Tapis tingkat semasa)
     nav_buttons = []
     for code in ["R", "3", "2", "1", "B"]:
         if code != floor_key:
@@ -95,8 +84,6 @@ async def send_lift_photo(update, context, floor_key):
         parse_mode='Markdown'
     )
 
-# --- HANDLERS ---
-
 async def show_lift_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("Rooftop Garden 🌿", callback_data='R')],
@@ -106,38 +93,31 @@ async def show_lift_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("Basement 🚗", callback_data='B')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.effective_message.reply_text(
-        "🛎️ **Panel Lif Rumah**\nSila pilih tingkat:", 
-        reply_markup=reply_markup, 
-        parse_mode='Markdown'
-    )
+    await update.effective_message.reply_text("🛎️ **Panel Lif Rumah**\nSila pilih tingkat:", reply_markup=reply_markup, parse_mode='Markdown')
 
 async def handle_shorthand(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text: return
     text = update.message.text.upper()
-    if text in FLOOR_LEVELS: 
-        await send_lift_photo(update, context, text)
+    if text in FLOOR_LEVELS: await send_lift_photo(update, context, text)
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     await send_lift_photo(update, context, query.data)
 
-# --- MAIN ---
-
 def main():
     if not TOKEN:
-        print("Ralat: BOT_TOKEN tidak dijumpai!")
+        print("Error: BOT_TOKEN not found!")
         return
 
-    # post_init digunakan untuk set menu command secara automatik
     app = Application.builder().token(TOKEN).post_init(post_init).build()
     
     app.add_handler(CommandHandler(["start", "lift"], show_lift_menu))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_shorthand))
     app.add_handler(CallbackQueryHandler(handle_callback))
     
-    print("Bot sedang berjalan...")
+    print("Bot is running...")
+    # drop_pending_updates=True sangat penting untuk elak bot 'sesak' mesej lama
     app.run_polling(drop_pending_updates=True)
 
 if __name__ == '__main__':
