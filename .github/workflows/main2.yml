@@ -1,4 +1,4 @@
-name: Bot Lif 24/7
+name: Casino drink 24/7
 
 on:
   push:
@@ -23,5 +23,5 @@ jobs:
 
       - name: Run Bot
         env:
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN2 }}
         run: python casino_drink.py
