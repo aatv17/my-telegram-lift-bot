@@ -3,8 +3,8 @@ name: Bot Lif 24/7
 on:
   push:
     branches: [ main ]
- schedule:
-   - cron: '0 0 * * *'  # Ini akan restart sekali sehari sahaja (pukul 12 malam)
+  schedule:
+    - cron: '0 0 * * *'
 
 jobs:
   run-bot:
