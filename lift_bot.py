@@ -117,8 +117,8 @@ def main():
     app.add_handler(CallbackQueryHandler(handle_callback))
     
     print("Bot is running...")
-    # drop_pending_updates=True sangat penting untuk elak bot 'sesak' mesej lama
-    app.run_polling(drop_pending_updates=True)
+    # drop_pending_updates=True akan delete semua mesej lama yang buat bot pening
+    application.run_polling(drop_pending_updates=True)
 
 if __name__ == '__main__':
     main()
