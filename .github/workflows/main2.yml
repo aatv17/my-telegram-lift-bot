@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
  schedule:
-  - cron: '0 0 * * *'  # Ini akan restart sekali sehari sahaja (pukul 12 malam)
+   - cron: '0 0 * * *'  # Ini akan restart sekali sehari sahaja (pukul 12 malam)
 
 jobs:
   run-bot:
