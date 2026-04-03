@@ -102,6 +102,7 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_button))
 
     print("Casino Bot is running...")
+  # drop_pending_updates=True akan delete semua mesej lama yang buat bot pening
     application.run_polling(drop_pending_updates=True)
 
 if __name__ == '__main__':
