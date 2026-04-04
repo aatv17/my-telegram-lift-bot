@@ -4,18 +4,27 @@ on:
   push:
     branches: [ main ]
   schedule:
+    # Berjalan setiap 6 jam pada minit ke-0
     - cron: '0 */6 * * *'
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      - run: pip install -r requirements.txt
+
+      - name: Install Requirements
+        run: pip install -r requirements.txt
+
       - name: Run Bot
         env:
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }} # Guna token bot LIFT
-        run: python lift_bot.py # TUKAR SINI: Mesti panggil fail kod lif!
+          # Guna Secret BOT_TOKEN
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        # Panggil fail lif
+        run: python lift_bot.py
