@@ -4,7 +4,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotComm
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
 # --- CONFIGURATION ---
-# Menggunakan os.getenv supaya token anda selamat di GitHub Secrets
+# Pastikan nama secret di GitHub Settings ialah BOT_TOKEN2
 TOKEN = os.getenv('BOT_TOKEN2')
 
 logging.basicConfig(
@@ -39,10 +39,11 @@ DRINKS_TEXT = {
 }
 
 async def post_init(application: Application):
-    """Menetapkan menu 'Menu' butang secara automatik dalam Telegram."""
+    """Menetapkan menu command secara automatik."""
     commands = [
         BotCommand("menu", "Papar Menu Bar Casino"),
         BotCommand("drink", "Pesan minuman (Contoh: /drink martini)"),
+        BotCommand("start", "Mula Bot"),
     ]
     await application.bot.set_my_commands(commands)
 
@@ -56,8 +57,11 @@ async def show_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    target = update.message if update.message else update.callback_query.message
-    await target.reply_text("🛎️ **Casino Bar is Open!**\nSelect a drink below:", reply_markup=reply_markup, parse_mode='Markdown')
+    # Menentukan target reply sama ada dari mesej atau butang
+    if update.message:
+        await update.message.reply_text("🛎️ **Casino Bar is Open!**\nSelect a drink below:", reply_markup=reply_markup, parse_mode='Markdown')
+    elif update.callback_query:
+        await update.callback_query.message.reply_text("🛎️ **Casino Bar is Open!**\nSelect a drink below:", reply_markup=reply_markup, parse_mode='Markdown')
 
 async def serve(update: Update, context: ContextTypes.DEFAULT_TYPE, drink_name: str, user, chat_id, message_to_reply):
     if drink_name in DRINK_FILES:
@@ -93,17 +97,18 @@ def main():
         print("Error: BOT_TOKEN2 not found!")
         return
 
-    # post_init digunakan untuk set menu command secara automatik
-    application = Application.builder().token(TOKEN).post_init(post_init).build()
+    # Bina aplikasi
+    app = Application.builder().token(TOKEN).post_init(post_init).build()
 
-    application.add_handler(CommandHandler("menu", show_menu))
-    application.add_handler(CommandHandler("start", show_menu))
-    application.add_handler(CommandHandler("drink", handle_drink_cmd))
-    application.add_handler(CallbackQueryHandler(handle_button))
+    app.add_handler(CommandHandler("menu", show_menu))
+    app.add_handler(CommandHandler("start", show_menu))
+    app.add_handler(CommandHandler("drink", handle_drink_cmd))
+    app.add_handler(CallbackQueryHandler(handle_button))
 
     print("Casino Bot is running...")
-  # drop_pending_updates=True akan delete semua mesej lama yang buat bot pening
-    application.run_polling(drop_pending_updates=True)
+    
+    # Menggunakan 'app' untuk menjalankan polling dengan pembersihan kemaskini tertunggak
+    app.run_polling(drop_pending_updates=True)
 
 if __name__ == '__main__':
     main()
