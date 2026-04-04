@@ -4,7 +4,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotComm
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
 # Membaca token dari GitHub Secrets
-TOKEN = os.getenv('BOT_TOKEN')
+TOKEN = os.getenv('BOT_TOKEN', '8652495747:AAGhzqaxD_ixXWrIw_PfuOR3USRB5ZGOerg' )
 
 # Simpan status lif
 current_lift_state = {}
