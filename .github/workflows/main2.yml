@@ -1,4 +1,4 @@
-name: Bot Casino 24/7  # Nama beza dari main.yml
+name: Bot Casino 24/7
 
 on:
   push:
@@ -17,6 +17,5 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Run Bot
         env:
-          # Guna Token Kedua
-          BOT_TOKEN2: ${{ secrets.BOT_TOKEN2 }} 
-        run: python casino_drink.py # Fail Python yang kedua
+          BOT_TOKEN2: ${{ secrets.BOT_TOKEN2 }} # Guna token bot CASINO
+        run: python casino_drink.py # Panggil fail kod casino
