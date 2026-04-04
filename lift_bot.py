@@ -4,7 +4,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotComm
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
 # Membaca token dari GitHub Secrets
-TOKEN = os.getenv('BOT_TOKEN', '8652495747:AAGhzqaxD_ixXWrIw_PfuOR3USRB5ZGOerg' )
+TOKEN = os.getenv('BOT_TOKEN') # Dapatkan dari Secrets
 
 # Simpan status lif
 current_lift_state = {}
@@ -110,15 +110,16 @@ def main():
         print("Error: BOT_TOKEN not found!")
         return
 
+    # SAYA TUKAR NAMA VARIABLE KEPADA 'app' UNTUK KESELURUHAN FUNGSI INI
     app = Application.builder().token(TOKEN).post_init(post_init).build()
     
     app.add_handler(CommandHandler(["start", "lift"], show_lift_menu))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_shorthand))
     app.add_handler(CallbackQueryHandler(handle_callback))
     
-    print("Bot is running...")
-    # drop_pending_updates=True akan delete semua mesej lama yang buat bot pening
-    application.run_polling(drop_pending_updates=True)
+    print("Bot Lif is running...")
+    # SEKARANG 'app' DIGUNAKAN DENGAN BETUL DI SINI
+    app.run_polling(drop_pending_updates=True)
 
 if __name__ == '__main__':
     main()
