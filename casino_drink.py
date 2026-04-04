@@ -5,7 +5,7 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Cont
 
 # --- CONFIGURATION ---
 # Menggunakan os.getenv supaya token anda selamat di GitHub Secrets
-TOKEN = os.getenv('BOT_TOKEN2', '8786168146:AAGTEOEsH-ZM2_OTYNUQTuC2w5dORMqMPtY')
+TOKEN = os.getenv('BOT_TOKEN2')
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
