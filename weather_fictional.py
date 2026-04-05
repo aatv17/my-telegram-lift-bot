@@ -8,7 +8,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes
 # --- CONFIGURATION ---
 TOKEN = os.getenv('BOT_TOKEN_WEATHER')
 # PASTI KAN ID GROUP BETUL (Mesti ada -100 di depan)
-TARGET_GROUP_ID = -1001234567890 # <--- GANTI DENGAN ID GROUP ANDA
+TARGET_GROUP_ID = -1002477011468 # <--- GANTI DENGAN ID GROUP ANDA
 TOPIC_ID = 143221
 
 WEATHER_OPTIONS = [
