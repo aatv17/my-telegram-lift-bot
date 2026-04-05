@@ -1,0 +1,21 @@
+name: Bot Mall 24/7
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '15 */12 * * *'
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - run: pip install python-telegram-bot==20.8
+      - name: Run Bot
+        env:
+          BOT_TOKEN_MALL: ${{ secrets.BOT_TOKEN_MALL }}
+        run: python mall_bot.py
