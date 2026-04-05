@@ -1,5 +1,6 @@
 import logging
 import os
+import random
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
@@ -8,7 +9,7 @@ TOKEN = os.getenv('BOT_TOKEN_MALL')
 TARGET_GROUP_ID = -1002477011468
 TOPIC_ID = 7565
 
-# Data Mall (Kategori & Kedai)
+# Data Mall dengan Direct Image Links
 MALL_DATA = {
     "food": {
         "text": "🍴 **Food & Relaxation**\nTempat untuk menjamu selera dan berehat.",
@@ -18,7 +19,7 @@ MALL_DATA = {
         ]
     },
     "clothing": {
-        "text": "👕 **Clothing & Fashion**\nKoleksi pakaian terkini, dari gaya Straight Cut hingga Baggy.",
+        "text": "👕 **Clothing & Fashion**\nKoleksi pakaian terkini dari gaya Straight Cut hingga Baggy.",
         "items": [
             {"name": "Urban Wear (Baggy Style)", "img": "https://i.pinimg.com/736x/49/96/51/499651406e9c5aa2376e5f08725ec424.jpg", "pin": "https://pin.it/2mZ7O4L9P"},
             {"name": "Classic Tailor (Straight Cut)", "img": "https://i.pinimg.com/736x/bc/d3/04/bcd3047af1ff9b8fe6e003b3c39d4a66.jpg", "pin": "https://pin.it/3nK9R2V5X"},
@@ -40,7 +41,7 @@ MALL_DATA = {
     }
 }
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
 async def post_init(application: Application):
     await application.bot.set_my_commands([BotCommand("start", "Masuk ke Mall")])
@@ -54,6 +55,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     text = "🏢 **Selamat Datang ke Fam Ravlyn Mall!**\nSila pilih tingkat atau kategori yang ingin anda lawati:"
+    
+    # Hantar mesej ke Topik jika dalam group
     await update.message.reply_text(text, reply_markup=reply_markup, parse_mode='Markdown')
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -66,29 +69,40 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cat_info = MALL_DATA[category]
         keyboard = []
         for item in cat_info['items']:
-            keyboard.append([InlineKeyboardButton(item['name'], callback_data=f"item_{category}_{cat_info['items'].index(item)}")])
+            idx = cat_info['items'].index(item)
+            keyboard.append([InlineKeyboardButton(item['name'], callback_data=f"item_{category}_{idx}")])
         keyboard.append([InlineKeyboardButton("⬅️ Kembali", callback_data='back_main')])
+        
         await query.edit_message_text(cat_info['text'], reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
 
     elif data.startswith("item_"):
         _, cat, idx = data.split("_")
         item = MALL_DATA[cat]['items'][int(idx)]
+        
         keyboard = [
             [InlineKeyboardButton("📍 Lihat di Pinterest", url=item['pin'])],
-            [InlineKeyboardButton("⬅️ Kembali", callback_data=f"menu_{cat}")]
+            [InlineKeyboardButton("⬅️ Kembali ke Menu", callback_data=f"menu_{cat}")]
         ]
+        
+        # PROSES HANTAR GAMBAR
         try:
+            # Kita guna send_photo untuk pastikan gambar keluar besar dalam chat
             await context.bot.send_photo(
                 chat_id=query.message.chat_id,
                 message_thread_id=TOP_ID,
                 photo=item['img'],
-                caption=f"🏬 **{item['name']}**\nSelamat datang ke butik kami!",
+                caption=f"🏬 **{item['name']}**\nAnda kini berada di lokasi ini.",
                 reply_markup=InlineKeyboardMarkup(keyboard),
                 parse_mode='Markdown'
             )
         except Exception as e:
-            await query.edit_message_text(f"🏬 **{item['name']}**\n[Klik Pinterest]({item['pin']})", 
-                                         reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
+            logging.error(f"Gagal hantar gambar: {e}")
+            await query.edit_message_text(
+                f"🏬 **{item['name']}**\n\n*(Maaf, gambar tidak dapat dimuatkan buat sementara waktu)*\n\n[Klik untuk lihat gambar di Pinterest]({item['pin']})",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown',
+                disable_web_page_preview=False
+            )
 
     elif data == "back_main":
         keyboard = [
@@ -104,6 +118,8 @@ def main():
     app = Application.builder().token(TOKEN).post_init(post_init).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
+    
+    print("Mall Bot is running...")
     app.run_polling(drop_pending_updates=True)
 
 if __name__ == '__main__':
