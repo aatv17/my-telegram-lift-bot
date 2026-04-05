@@ -64,7 +64,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Set jadual baru setiap 24 jam (86400 saat)
         context.job_queue.run_repeating(
             send_weather_update, 
-            interval=86400, 
+            interval=60, 
             first=10, 
             name="daily_weather"
         )
