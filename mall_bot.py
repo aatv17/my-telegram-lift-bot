@@ -8,7 +8,10 @@ TOKEN = os.getenv('BOT_TOKEN_MALL')
 TARGET_GROUP_ID = -1002477011468
 TOPIC_ID = 7565
 
-# --- DATA MALL (Ganti 'img' dengan File ID yang anda dapat nanti) ---
+# Log sistem untuk kita nampak ralat
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+
+# --- DATA MALL ---
 MALL_DATA = {
     "food": {
         "text": "🍴 **Food & Relaxation**",
@@ -26,20 +29,38 @@ MALL_DATA = {
     }
 }
 
-logging.basicConfig(level=logging.INFO)
+async def post_init(application: Application):
+    await application.bot.set_my_commands([BotCommand("start", "Masuk ke Mall")])
 
-# --- FUNGSI DETECT ID GAMBAR ---
-async def get_image_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Bot akan balas dengan File ID bila anda hantar gambar."""
-    file_id = update.message.photo[-1].file_id
-    await update.message.reply_text(f"✅ **ID Gambar Dikesan!**\n\nSila copy ID di bawah dan paste ke dalam kod Python anda:\n\n`{file_id}`", parse_mode='Markdown')
+# --- 1. FUNGSI GRAB ID GAMBAR ---
+async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Bila Arka hantar gambar, bot akan bagi File ID terus!"""
+    # Ambil saiz gambar yang paling besar (paling clear)
+    photo_file = update.message.photo[-1]
+    file_id = photo_file.file_id
+    
+    msg = (
+        "📸 **ID GAMBAR DIKESAN!**\n\n"
+        "Copy ID di bawah dan paste dalam Python:\n\n"
+        f"`{file_id}`"
+    )
+    await update.message.reply_text(msg, parse_mode='Markdown')
+    logging.info(f"ID Gambar dijana: {file_id}")
 
+# --- 2. FUNGSI MENU MALL ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("🍴 Food & Relaxation", callback_data='menu_food')],
-        [InlineKeyboardButton("👕 Clothing & Fashion", callback_data='menu_clothing')]
+        [InlineKeyboardButton("👕 Clothing & Fashion", callback_data='menu_clothing')],
+        [InlineKeyboardButton("🚽 Basic Facilities", callback_data='menu_basic')],
+        [InlineKeyboardButton("🎬 Entertainment", callback_data='menu_fun')]
     ]
-    await update.message.reply_text("🏢 **Fam Ravlyn Mall**", reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.message.reply_text(
+        "🏢 **Selamat Datang ke Fam Ravlyn Mall!**\n\n"
+        "Hantar mana-mana gambar di sini untuk dapatkan **File ID**, "
+        "atau klik butang di bawah untuk melawat Mall.",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -47,36 +68,54 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if query.data.startswith("menu_"):
         cat = query.data.split("_")[1]
+        if cat not in MALL_DATA:
+            await query.answer("Kategori ini akan dibuka tidak lama lagi!", show_alert=True)
+            return
+            
         items = MALL_DATA[cat]['items']
-        keyboard = [[InlineKeyboardButton(i['name'], callback_data=f"item_{cat}_{items.index(i)}")] for i in items]
+        keyboard = []
+        for i in items:
+            idx = items.index(i)
+            keyboard.append([InlineKeyboardButton(i['name'], callback_data=f"item_{cat}_{idx}")])
         keyboard.append([InlineKeyboardButton("⬅️ Kembali", callback_data='back_main')])
+        
         await query.edit_message_text(MALL_DATA[cat]['text'], reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
 
     elif query.data.startswith("item_"):
         _, cat, idx = query.data.split("_")
         item = MALL_DATA[cat]['items'][int(idx)]
-        keyboard = [[InlineKeyboardButton("📍 Pinterest", url=item['pin'])], [InlineKeyboardButton("⬅️ Kembali", callback_data=f"menu_{cat}")]]
+        keyboard = [
+            [InlineKeyboardButton("📍 Lihat di Pinterest", url=item['pin'])],
+            [InlineKeyboardButton("⬅️ Kembali", callback_data=f"menu_{cat}")]
+        ]
         
-        # Bot hantar gambar (Guna File ID atau Link)
-        await context.bot.send_photo(
-            chat_id=query.message.chat_id,
-            message_thread_id=TOP_ID,
-            photo=item['img'],
-            caption=f"🏬 **{item['name']}**",
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode='Markdown'
-        )
+        try:
+            await context.bot.send_photo(
+                chat_id=query.message.chat_id,
+                message_thread_id=TOP_ID,
+                photo=item['img'],
+                caption=f"🏬 **{item['name']}**\nSelamat datang!",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
+        except Exception as e:
+            await query.edit_message_text(f"❌ Gagal hantar gambar: {e}\n\n[Klik Pinterest]({item['pin']})", 
+                                         reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
+
+    elif query.data == "back_main":
+        await start(query, context) # Panggil balik function start
 
 def main():
     if not TOKEN: return
-    app = Application.builder().token(TOKEN).build()
+    app = Application.builder().token(TOKEN).post_init(post_init).build()
     
-    # Handler untuk detect gambar
-    app.add_handler(MessageHandler(filters.PHOTO, get_image_id))
+    # PENTING: Handler gambar mesti di atas supaya dia detect dulu
+    app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
     
-    app.run_polling()
+    print("Mall Bot + ID Grabber sedang berjalan...")
+    app.run_polling(drop_pending_updates=True)
 
 if __name__ == '__main__':
     main()
