@@ -7,8 +7,12 @@ from telegram.ext import Application, CommandHandler, ContextTypes
 
 # --- CONFIGURATION ---
 TOKEN = os.getenv('BOT_TOKEN_WEATHER')
-# PASTI KAN ID GROUP BETUL (Mesti ada -100 di depan)
-TARGET_GROUP_ID = -1002477011468 # <--- GANTI DENGAN ID GROUP ANDA
+
+# --- ARAHAN PENTING UNTUK ARKA ---
+# 1. Pastikan ID bermula dengan -100 (Contoh: -100123456789)
+# 2. Pastikan Bot sudah di-INVITE ke dalam Group
+# 3. Pastikan Bot adalah ADMIN dalam Group
+TARGET_GROUP_ID = -1002477011468  # <--- GANTI ID ANDA DI SINI
 TOPIC_ID = 143221
 
 WEATHER_OPTIONS = [
@@ -17,16 +21,12 @@ WEATHER_OPTIONS = [
     {"status": "Ribut Gula-Gula 🍭", "temp": "24°C", "desc": "Angin kencang membawa awan kapas."},
     {"status": "Kabut Neon 🌫️", "temp": "15°C", "desc": "Semua nampak warna-warni neon."},
     {"status": "Salji Coklat ❄️", "temp": "-5°C", "desc": "Sesuai untuk buat milo ais percuma."},
-    {"status": "Angin Berbisik 🌬️", "temp": "20°C", "desc": "Angin membisikkan kata-kata semangat."}
+    {"status": "Angin Berbisik 🌬️", "temp": "20°C", "desc": "Angin sepoi-sepoi bahasa."}
 ]
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-
-async def post_init(application: Application):
-    await application.bot.set_my_commands([BotCommand("start", "Mula Bot Cuaca")])
+logging.basicConfig(level=logging.INFO)
 
 async def send_weather_update(context: ContextTypes.DEFAULT_TYPE):
-    """Fungsi hantar mesej cuaca."""
     weather = random.choice(WEATHER_OPTIONS)
     text = (
         f"📅 **Laporan Cuaca Fam Ravlyn**\n"
@@ -34,59 +34,53 @@ async def send_weather_update(context: ContextTypes.DEFAULT_TYPE):
         f"🌍 **Status:** {weather['status']}\n"
         f"🌡️ **Suhu:** {weather['temp']}\n"
         f"📝 **Info:** {weather['desc']}\n"
-        f"━━━━━━━━━━━━━━━\n"
-        f"📍 *Lokasi: Digital Realm*"
+        f"━━━━━━━━━━━━━━━"
     )
     
+    # CUBAAN 1: Hantar ke Topik Spesifik
     try:
-        # Hantar ke group dan topik yang spesifik
         await context.bot.send_message(
             chat_id=TARGET_GROUP_ID,
             message_thread_id=TOPIC_ID,
             text=text,
             parse_mode='Markdown'
         )
-        logging.info("Mesej cuaca berjaya dihantar!")
+        logging.info("✅ Berjaya hantar ke Topik!")
     except Exception as e:
-        logging.error(f"Gagal hantar mesej: {e}")
+        logging.warning(f"⚠️ Gagal ke Topik, ralat: {e}")
+        
+        # CUBAAN 2: Jika gagal ke topik, hantar ke Group Utama (General)
+        try:
+            await context.bot.send_message(
+                chat_id=TARGET_GROUP_ID,
+                text=f"⚠️ (Hantaran Kecemasan ke General)\n\n{text}",
+                parse_mode='Markdown'
+            )
+            logging.info("✅ Berjaya hantar ke General Group!")
+        except Exception as e2:
+            logging.error(f"❌ Gagal total ke Group & Topik: {e2}")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Command /start untuk hantar SEKARANG dan mula JADUAL."""
     if context.job_queue:
-        await update.message.reply_text("🚀 **Bot Cuaca Aktif!**\nHantar laporan pertama sekarang...")
+        await update.message.reply_text("🚀 **Bot Diaktifkan!** Cuba hantar laporan sekarang...")
         
-        # 1. HANTAR SERTA-MERTA (Tak payah tunggu)
+        # Hantar serta-merta untuk test
         await send_weather_update(context)
 
-        # 2. SET JADUAL (Sekarang set 60 saat untuk test)
-        # UNTUK 24 JAM: Tukar 60 kepada 86400
-        MASA_MENUNGGU = 60 
-
-        # Buang jadual lama supaya tak bertindih
-        current_jobs = context.job_queue.get_jobs_by_name("weather_job")
-        for job in current_jobs:
-            job.schedule_removal()
-
+        # Set jadual harian (86400 saat)
         context.job_queue.run_repeating(
             send_weather_update, 
-            interval=MASA_MENUNGGU, 
-            first=MASA_MENUNGGU, 
-            name="weather_job"
+            interval=86400, 
+            first=86400, 
+            name="weather_daily"
         )
-        
-        await update.message.reply_text(f"✅ Jadual bermula! Mesej seterusnya setiap {MASA_MENUNGGU} saat.")
     else:
-        await update.message.reply_text("❌ Ralat: JobQueue tidak berfungsi.")
+        await update.message.reply_text("❌ JobQueue Error.")
 
 def main():
-    if not TOKEN:
-        print("Error: BOT_TOKEN_WEATHER not found!")
-        return
-
-    app = Application.builder().token(TOKEN).post_init(post_init).build()
+    if not TOKEN: return
+    app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
-    
-    print("Bot Cuaca sedang berjalan...")
     app.run_polling(drop_pending_updates=True)
 
 if __name__ == '__main__':
