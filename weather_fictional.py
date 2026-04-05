@@ -1,22 +1,18 @@
 import logging
 import os
 import random
-import asyncio
 from telegram import Update, BotCommand
 from telegram.ext import Application, CommandHandler, ContextTypes
 
 # --- CONFIGURATION ---
 TOKEN = os.getenv('BOT_TOKEN_WEATHER')
-
-# --- ARAHAN PENTING UNTUK ARKA ---
-# 1. Pastikan ID bermula dengan -100 (Contoh: -100123456789)
-# 2. Pastikan Bot sudah di-INVITE ke dalam Group
-# 3. Pastikan Bot adalah ADMIN dalam Group
-TARGET_GROUP_ID = -1002477011468  # <--- GANTI ID ANDA DI SINI
+# Pastikan ID Group bermula dengan -100
+TARGET_GROUP_ID = -1002477011468 # <--- GANTI ID GROUP ANDA
 TOPIC_ID = 143221
 
+# Koleksi Cuaca Rekaan
 WEATHER_OPTIONS = [
-    {"status": "Hujan Berlian 💎", "temp": "-50°C", "desc": "Sila bawa payung besi!"},
+    {"status": "Hujan Berlian 💎", "temp": "-50°C", "desc": "Sila bawa payung besi, berlian tajam sedang turun!"},
     {"status": "Panas Mentari Biru ☀️", "temp": "85°C", "desc": "Cuaca sangat terik, air laut mendidih."},
     {"status": "Ribut Gula-Gula 🍭", "temp": "24°C", "desc": "Angin kencang membawa awan kapas."},
     {"status": "Kabut Neon 🌫️", "temp": "15°C", "desc": "Semua nampak warna-warni neon."},
@@ -26,7 +22,11 @@ WEATHER_OPTIONS = [
 
 logging.basicConfig(level=logging.INFO)
 
-async def send_weather_update(context: ContextTypes.DEFAULT_TYPE):
+async def post_init(application: Application):
+    await application.bot.set_my_commands([BotCommand("start", "Mula Laporan Cuaca")])
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Bila tekan /start, bot TERUS hantar cuaca sekali."""
     weather = random.choice(WEATHER_OPTIONS)
     text = (
         f"📅 **Laporan Cuaca Fam Ravlyn**\n"
@@ -34,53 +34,40 @@ async def send_weather_update(context: ContextTypes.DEFAULT_TYPE):
         f"🌍 **Status:** {weather['status']}\n"
         f"🌡️ **Suhu:** {weather['temp']}\n"
         f"📝 **Info:** {weather['desc']}\n"
-        f"━━━━━━━━━━━━━━━"
+        f"━━━━━━━━━━━━━━━\n"
+        f"📍 *Lokasi: Digital Realm*"
     )
     
-    # CUBAAN 1: Hantar ke Topik Spesifik
     try:
+        # Cuba hantar ke Topik
         await context.bot.send_message(
             chat_id=TARGET_GROUP_ID,
             message_thread_id=TOPIC_ID,
             text=text,
             parse_mode='Markdown'
         )
-        logging.info("✅ Berjaya hantar ke Topik!")
+        await update.message.reply_text("✅ Laporan cuaca telah dihantar ke topik!")
     except Exception as e:
-        logging.warning(f"⚠️ Gagal ke Topik, ralat: {e}")
-        
-        # CUBAAN 2: Jika gagal ke topik, hantar ke Group Utama (General)
+        # Jika gagal ke topik, hantar terus ke group utama
         try:
             await context.bot.send_message(
                 chat_id=TARGET_GROUP_ID,
-                text=f"⚠️ (Hantaran Kecemasan ke General)\n\n{text}",
+                text=f"⚠️ (Hantaran ke General)\n\n{text}",
                 parse_mode='Markdown'
             )
-            logging.info("✅ Berjaya hantar ke General Group!")
+            await update.message.reply_text("✅ Berjaya hantar ke group utama!")
         except Exception as e2:
-            logging.error(f"❌ Gagal total ke Group & Topik: {e2}")
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.job_queue:
-        await update.message.reply_text("🚀 **Bot Diaktifkan!** Cuba hantar laporan sekarang...")
-        
-        # Hantar serta-merta untuk test
-        await send_weather_update(context)
-
-        # Set jadual harian (86400 saat)
-        context.job_queue.run_repeating(
-            send_weather_update, 
-            interval=86400, 
-            first=86400, 
-            name="weather_daily"
-        )
-    else:
-        await update.message.reply_text("❌ JobQueue Error.")
+            await update.message.reply_text(f"❌ Gagal: {e2}")
 
 def main():
-    if not TOKEN: return
-    app = Application.builder().token(TOKEN).build()
+    if not TOKEN:
+        print("BOT_TOKEN_WEATHER tiada!")
+        return
+
+    app = Application.builder().token(TOKEN).post_init(post_init).build()
     app.add_handler(CommandHandler("start", start))
+    
+    print("Bot Cuaca Manual sedang berjalan...")
     app.run_polling(drop_pending_updates=True)
 
 if __name__ == '__main__':
