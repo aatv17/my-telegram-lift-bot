@@ -5,7 +5,7 @@ on:
     branches: [ main ]
   schedule:
     # Restart setiap 12 jam supaya bot sentiasa 'awake'
-    - cron: '10 */12 * * *'
+    - cron: '0 */12 * * *'
 
 jobs:
   run-bot:
