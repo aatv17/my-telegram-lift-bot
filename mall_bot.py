@@ -1,125 +1,93 @@
 import logging
 import os
-import random
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
 # --- CONFIGURATION ---
 TOKEN = os.getenv('BOT_TOKEN_MALL')
 TARGET_GROUP_ID = -1002477011468
-TOPIC_ID = 7565
+TOP_ID = 7565
 
-# Data Mall dengan Direct Image Links
-MALL_DATA = {
-    "food": {
-        "text": "🍴 **Food & Relaxation**\nTempat untuk menjamu selera dan berehat.",
-        "items": [
-            {"name": "Food Court", "img": "https://i.pinimg.com/1200x/1f/e1/e7/1fe1e71db44391066b1c9d4b18b32d1f.jpg", "pin": "https://pin.it/4kR5X6Z0H"},
-            {"name": "Roof Garden", "img": "https://i.pinimg.com/736x/1b/68/de/1b68dedbb98a3ad38dded21f6181d126.jpg", "pin": "https://pin.it/6YyXJz8qB"}
-        ]
-    },
-    "clothing": {
-        "text": "👕 **Clothing & Fashion**\nKoleksi pakaian terkini dari gaya Straight Cut hingga Baggy.",
-        "items": [
-            {"name": "Urban Wear (Baggy Style)", "img": "https://i.pinimg.com/736x/49/96/51/499651406e9c5aa2376e5f08725ec424.jpg", "pin": "https://pin.it/2mZ7O4L9P"},
-            {"name": "Classic Tailor (Straight Cut)", "img": "https://i.pinimg.com/736x/bc/d3/04/bcd3047af1ff9b8fe6e003b3c39d4a66.jpg", "pin": "https://pin.it/3nK9R2V5X"},
-            {"name": "Aesthetic Boutique", "img": "https://i.pinimg.com/736x/9d/f8/56/9df85631e53cdb08a833d78c147974b1.jpg", "pin": "https://pin.it/5mB2L8K"}
-        ]
-    },
-    "basic": {
-        "text": "🚽 **Basic Facilities**\nKemudahan asas untuk keselesaan anda.",
-        "items": [
-            {"name": "Toilets", "img": "https://i.pinimg.com/736x/85/24/6b/85246be41933fdb50c75fdc24e5921a4.jpg", "pin": "https://pin.it/toilet"}
-        ]
-    },
-    "fun": {
-        "text": "🎬 **Entertainment & Leisure**\nHiburan dan kawasan permainan.",
-        "items": [
-            {"name": "Cinema (Indonesia)", "img": "https://i.pinimg.com/736x/14/d7/ec/14d7ecea6ac171775bd978d2a9b8dca4.jpg", "pin": "https://pin.it/cinema_indo"},
-            {"name": "Arcade Center", "img": "https://i.pinimg.com/1200x/35/6c/f1/356cf1d433d7d94d6cbd887b28754cd8.jpg", "pin": "https://pin.it/arcade_game"}
-        ]
-    }
-}
-
+# Log sistem
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
 async def post_init(application: Application):
     await application.bot.set_my_commands([BotCommand("start", "Masuk ke Mall")])
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Hantar menu mall ke topik spesifik di group."""
     keyboard = [
-        [InlineKeyboardButton("🍴 Food & Relaxation", callback_data='menu_food')],
-        [InlineKeyboardButton("👕 Clothing & Fashion", callback_data='menu_clothing')],
-        [InlineKeyboardButton("🚽 Basic Facilities", callback_data='menu_basic')],
-        [InlineKeyboardButton("🎬 Entertainment", callback_data='menu_fun')]
+        [
+            InlineKeyboardButton("🍔 Makanan", callback_data='buy_makanan'),
+            InlineKeyboardButton("🥤 Minuman", callback_data='buy_minuman')
+        ],
+        [
+            InlineKeyboardButton("👕 Pakaian", callback_data='buy_pakaian'),
+            InlineKeyboardButton("👟 Kasut", callback_data='buy_kasut')
+        ],
+        [
+            InlineKeyboardButton("🎬 Wayang", callback_data='buy_wayang'),
+            InlineKeyboardButton("🧸 Mainan", callback_data='buy_mainan')
+        ]
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    text = "🏢 **Selamat Datang ke Fam Ravlyn Mall!**\nSila pilih tingkat atau kategori yang ingin anda lawati:"
     
-    # Hantar mesej ke Topik jika dalam group
-    await update.message.reply_text(text, reply_markup=reply_markup, parse_mode='Markdown')
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    text = "🏢 <b>Selamat Datang ke Fam Ravlyn Mall!</b>\nSila pilih kategori barang yang anda cari:"
+    
+    # Menghantar mesej ke Group dan Topik yang ditetapkan
+    await context.bot.send_message(
+        chat_id=TARGET_GROUP_ID,
+        message_thread_id=TOP_ID,
+        text=text,
+        reply_markup=reply_markup,
+        parse_mode='HTML'
+    )
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    
     data = query.data
+    responses = {
+        'buy_makanan': "🍔 Sila ke <b>Food Court</b> untuk pelbagai pilihan makanan!",
+        'buy_minuman': "🥤 <b>Starbucks & Tealive</b> sedia menghidangkan minuman segar!",
+        'buy_pakaian': "👕 Butik <b>Urban Wear</b> (Baggy & Straight Cut) di Tingkat 1!",
+        'buy_kasut': "👟 Kedai sneakers terletak bersebelahan dengan eskalator utama.",
+        'buy_wayang': "🎬 <b>Cinema</b> sedang menayangkan filem terbaru hari ini!",
+        'buy_mainan': "🧸 <b>Toy Zone</b> adalah syurga untuk kanak-kanak!"
+    }
+    
+    msg = responses.get(data, "Pilihan tidak dikesan.")
+    back_keyboard = [[InlineKeyboardButton("⬅️ Kembali ke Menu", callback_data='back_main')]]
+    
+    await query.edit_message_text(
+        text=f"{msg}\n\nAda apa-apa lagi yang anda perlukan?",
+        reply_markup=InlineKeyboardMarkup(back_keyboard),
+        parse_mode='HTML'
+    )
 
-    if data.startswith("menu_"):
-        category = data.split("_")[1]
-        cat_info = MALL_DATA[category]
-        keyboard = []
-        for item in cat_info['items']:
-            idx = cat_info['items'].index(item)
-            keyboard.append([InlineKeyboardButton(item['name'], callback_data=f"item_{category}_{idx}")])
-        keyboard.append([InlineKeyboardButton("⬅️ Kembali", callback_data='back_main')])
-        
-        await query.edit_message_text(cat_info['text'], reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
-
-    elif data.startswith("item_"):
-        _, cat, idx = data.split("_")
-        item = MALL_DATA[cat]['items'][int(idx)]
-        
-        keyboard = [
-            [InlineKeyboardButton("📍 Lihat di Pinterest", url=item['pin'])],
-            [InlineKeyboardButton("⬅️ Kembali ke Menu", callback_data=f"menu_{cat}")]
-        ]
-        
-        # PROSES HANTAR GAMBAR
-        try:
-            # Kita guna send_photo untuk pastikan gambar keluar besar dalam chat
-            await context.bot.send_photo(
-                chat_id=query.message.chat_id,
-                message_thread_id=TOP_ID,
-                photo=item['img'],
-                caption=f"🏬 **{item['name']}**\nAnda kini berada di lokasi ini.",
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode='Markdown'
-            )
-        except Exception as e:
-            logging.error(f"Gagal hantar gambar: {e}")
-            await query.edit_message_text(
-                f"🏬 **{item['name']}**\n\n*(Maaf, gambar tidak dapat dimuatkan buat sementara waktu)*\n\n[Klik untuk lihat gambar di Pinterest]({item['pin']})",
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode='Markdown',
-                disable_web_page_preview=False
-            )
-
-    elif data == "back_main":
-        keyboard = [
-            [InlineKeyboardButton("🍴 Food & Relaxation", callback_data='menu_food')],
-            [InlineKeyboardButton("👕 Clothing & Fashion", callback_data='menu_clothing')],
-            [InlineKeyboardButton("🚽 Basic Facilities", callback_data='menu_basic')],
-            [InlineKeyboardButton("🎬 Entertainment", callback_data='menu_fun')]
-        ]
-        await query.edit_message_text("🏢 **Selamat Datang ke Fam Ravlyn Mall!**", reply_markup=InlineKeyboardMarkup(keyboard))
+async def handle_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    keyboard = [
+        [InlineKeyboardButton("🍔 Makanan", callback_data='buy_makanan'), InlineKeyboardButton("🥤 Minuman", callback_data='buy_minuman')],
+        [InlineKeyboardButton("👕 Pakaian", callback_data='buy_pakaian'), InlineKeyboardButton("👟 Kasut", callback_data='buy_kasut')],
+        [InlineKeyboardButton("🎬 Wayang", callback_data='buy_wayang'), InlineKeyboardButton("🧸 Mainan", callback_data='buy_mainan')]
+    ]
+    await query.edit_message_text(
+        "🏢 <b>Fam Ravlyn Mall</b>\nSila pilih kategori:",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode='HTML'
+    )
 
 def main():
     if not TOKEN: return
     app = Application.builder().token(TOKEN).post_init(post_init).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(button_handler))
     
-    print("Mall Bot is running...")
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(handle_back, pattern='back_main'))
+    app.add_handler(CallbackQueryHandler(button_handler, pattern='^buy_'))
+    
+    print("Mall Bot Emoji (Topic Mode) sedang berjalan...")
     app.run_polling(drop_pending_updates=True)
 
 if __name__ == '__main__':
