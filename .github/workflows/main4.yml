@@ -4,18 +4,27 @@ on:
   push:
     branches: [ main ]
   schedule:
-    - cron: '1 */12 * * *'
+    # Bot akan dicheck setiap 6 jam untuk pastikan ia sentiasa aktif
+    - cron: '0 */6 * * *'
+  workflow_dispatch: # Membolehkan Arka jalankan bot secara manual dari tab Actions
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      - run: pip install python-telegram-bot==20.8
-      - name: Run Bot
+
+      - name: Install Dependencies
+        run: |
+          pip install python-telegram-bot==20.8
+
+      - name: Run Mall Bot
         env:
           BOT_TOKEN_MALL: ${{ secrets.BOT_TOKEN_MALL }}
         run: python mall_bot.py
